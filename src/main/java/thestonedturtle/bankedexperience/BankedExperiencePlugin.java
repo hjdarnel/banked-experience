@@ -38,6 +38,9 @@ public class BankedExperiencePlugin extends Plugin
 	private static final Map<Integer, Integer> EMPTY_MAP = new HashMap<>();
 	private static final String CONFIG_GROUP = "bankedexperience";
 	private static final String VAULT_CONFIG_KEY = "grabFromSeedVault";
+	private static final String INVENTORY_CONFIG_KEY = "grabFromInventory";
+	private static final String LOOTING_BAG_CONFIG_KEY = "grabFromLootingBag";
+	private static final int LOOTING_BAG_ID = 516;
 
 	@Inject
 	private Client client;
@@ -68,6 +71,8 @@ public class BankedExperiencePlugin extends Plugin
 	private boolean prepared = false;
 	private int bankHash = -1;
 	private int vaultHash = -1;
+	private int inventoryHash = -1;
+	private int lootingBagHash = -1;
 	private int lastCheckTick = -1;
 
 	@Override
@@ -116,10 +121,25 @@ public class BankedExperiencePlugin extends Plugin
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event)
 	{
-		if (event.getGroup().equals(CONFIG_GROUP) && event.getKey().equals(VAULT_CONFIG_KEY))
+		if (!event.getGroup().equals(CONFIG_GROUP))
 		{
-			vaultHash = -1;
-			SwingUtilities.invokeLater(() -> panel.setVaultMap(EMPTY_MAP));
+			return;
+		}
+
+		switch (event.getKey())
+		{
+			case VAULT_CONFIG_KEY:
+				vaultHash = -1;
+				SwingUtilities.invokeLater(() -> panel.setVaultMap(EMPTY_MAP));
+				break;
+			case INVENTORY_CONFIG_KEY:
+				inventoryHash = -1;
+				SwingUtilities.invokeLater(() -> panel.setInventoryMap(EMPTY_MAP));
+				break;
+			case LOOTING_BAG_CONFIG_KEY:
+				lootingBagHash = -1;
+				SwingUtilities.invokeLater(() -> panel.setLootingBagMap(EMPTY_MAP));
+				break;
 		}
 	}
 
@@ -150,43 +170,70 @@ public class BankedExperiencePlugin extends Plugin
 	@Subscribe
 	public void onItemContainerChanged(ItemContainerChanged ev)
 	{
-		if (ev.getContainerId() != InventoryID.SEED_VAULT.getId() || !config.grabFromSeedVault())
+		if (ev.getContainerId() == InventoryID.SEED_VAULT.getId() && config.grabFromSeedVault())
 		{
-			return;
-		}
+			final Map<Integer, Integer> m = getItemsFromItemContainer(ev.getItemContainer());
+			if (m == null)
+			{
+				return;
+			}
 
-		final Map<Integer, Integer> m = getItemsFromInventory(InventoryID.SEED_VAULT);
-		if (m == null)
-		{
-			return;
+			final int curHash = m.hashCode();
+			if (vaultHash != curHash)
+			{
+				vaultHash = curHash;
+				SwingUtilities.invokeLater(() -> panel.setVaultMap(m));
+			}
 		}
-
-		final int curHash = m.hashCode();
-		if (vaultHash != curHash)
+		else if (ev.getContainerId() == InventoryID.INVENTORY.getId() && config.grabFromInventory())
 		{
-			vaultHash = curHash;
-			SwingUtilities.invokeLater(() -> panel.setVaultMap(m));
+			final Map<Integer, Integer> m = getItemsFromItemContainer(ev.getItemContainer());
+			if (m == null)
+			{
+				return;
+			}
+
+			final int curHash = m.hashCode();
+			if (inventoryHash != curHash)
+			{
+				inventoryHash = curHash;
+				SwingUtilities.invokeLater(() -> panel.setInventoryMap(m));
+			}
+		}
+		else if (ev.getContainerId() == LOOTING_BAG_ID && config.grabFromLootingBag())
+		{
+			final Map<Integer, Integer> m = getItemsFromInventory(InventoryID.SEED_VAULT);
+			if (m == null)
+			{
+				return;
+			}
+
+			final int curHash = m.hashCode();
+			if (lootingBagHash != curHash)
+			{
+				lootingBagHash = curHash;
+				SwingUtilities.invokeLater(() -> panel.setLootingBagMap(m));
+			}
 		}
 	}
 
 	@Nullable
 	private Map<Integer, Integer> getItemsFromInventory(InventoryID inventoryID)
 	{
+		return getItemsFromItemContainer(client.getItemContainer(inventoryID));
+	}
+
+	@Nullable
+	private Map<Integer, Integer> getItemsFromItemContainer(final ItemContainer c)
+	{
 		// Check if the contents have changed.
-		final ItemContainer c = client.getItemContainer(inventoryID);
 		if (c == null)
 		{
 			return null;
 		}
 
-		final Item[] widgetItems = c.getItems();
-		if (widgetItems == null)
-		{
-			return null;
-		}
-
 		final Map<Integer, Integer> m = new HashMap<>();
-		for (Item widgetItem : widgetItems)
+		for (Item widgetItem : c.getItems())
 		{
 			m.put(widgetItem.getId(), widgetItem.getQuantity());
 		}

@@ -87,6 +87,8 @@ public class BankedCalculator extends JPanel
 	// keep sources separate for recreating currentMap when one updates
 	private Map<Integer, Integer> bankMap = new HashMap<>();
 	private Map<Integer, Integer> vaultMap = new HashMap<>();
+	private Map<Integer, Integer> inventoryMap = new HashMap<>();
+	private Map<Integer, Integer> lootingBagMap = new HashMap<>();
 
 	@Getter
 	private Skill currentSkill;
@@ -492,10 +494,24 @@ public class BankedCalculator extends JPanel
 		updateCurrentMap();
 	}
 
+	void setInventoryMap(final Map<Integer, Integer> map)
+	{
+		this.inventoryMap = map;
+		updateCurrentMap();
+	}
+
+	void setLootingBagMap(final Map<Integer, Integer> map)
+	{
+		this.lootingBagMap = map;
+		updateCurrentMap();
+	}
+
 	private void updateCurrentMap()
 	{
 		currentMap.clear();
 		currentMap.putAll(bankMap);
 		currentMap.putAll(vaultMap);
+		currentMap.putAll(inventoryMap);
+		currentMap.putAll(lootingBagMap);
 	}
 }

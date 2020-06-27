@@ -118,4 +118,14 @@ public class BankedCalculatorPanel extends PluginPanel
 	{
 		calculator.setVaultMap(bankMap);
 	}
+
+	public void setInventoryMap(final Map<Integer, Integer> map)
+	{
+		calculator.setInventoryMap(map);
+	}
+
+	public void setLootingBagMap(final Map<Integer, Integer> map)
+	{
+		calculator.setLootingBagMap(map);
+	}
 }
